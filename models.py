@@ -6,17 +6,13 @@ Author: Healthcare Systems Team
 Version: 1.0.0
 Description: SQLAlchemy ORM models for the Healthcare Risk Platform
 """
-
 from datetime import datetime
 from sqlalchemy import Index, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
-
 db = SQLAlchemy()
-
-
 class User(db.Model):
     """User model for authentication and authorization"""
     __tablename__ = 'users'
@@ -24,7 +20,6 @@ class User(db.Model):
         Index('idx_username', 'username'),
         Index('idx_email', 'email'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -37,17 +32,12 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = db.Column(db.DateTime)
-
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
     def __repr__(self):
         return f'<User {self.username}>'
-
-
 class Patient(db.Model):
     """Patient model containing demographic and clinical information"""
     __tablename__ = 'patients'
@@ -55,7 +45,6 @@ class Patient(db.Model):
         Index('idx_mrn', 'mrn'),
         Index('idx_date_of_birth', 'date_of_birth'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     mrn = db.Column(db.String(50), unique=True, nullable=False)  # Medical Record Number
     first_name = db.Column(db.String(50), nullable=False)
@@ -79,11 +68,8 @@ class Patient(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
     def __repr__(self):
-        return f'<Patient {self.mrn}>'
-
-
+        return f'<Patient {str(self.id)[:8]}>'
 class Vital(db.Model):
     """Vital signs model for storing patient measurements"""
     __tablename__ = 'vital_signs'
@@ -93,7 +79,6 @@ class Vital(db.Model):
         CheckConstraint('systolic_bp >= 50 AND systolic_bp <= 300'),
         CheckConstraint('diastolic_bp >= 30 AND diastolic_bp <= 200'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = db.Column(UUID(as_uuid=True), db.ForeignKey('patients.id'), nullable=False)
     measurement_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -106,20 +91,15 @@ class Vital(db.Model):
     blood_glucose = db.Column(db.Float)  # mg/dL
     weight = db.Column(db.Float)  # kg
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     patient = db.relationship('Patient', backref=db.backref('vitals', lazy=True))
-
     def __repr__(self):
-        return f'<Vital {self.patient_id} @ {self.measurement_time}>'
-
-
+        return f'<Vital {str(self.id)[:8]}>'
 class LabResult(db.Model):
     """Laboratory test results model"""
     __tablename__ = 'lab_results'
     __table_args__ = (
         Index('idx_patient_id_test_date', 'patient_id', 'test_date'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = db.Column(UUID(as_uuid=True), db.ForeignKey('patients.id'), nullable=False)
     test_name = db.Column(db.String(100), nullable=False)  # WBC, RBC, etc
@@ -132,13 +112,9 @@ class LabResult(db.Model):
     status = db.Column(db.String(20), default='pending')  # pending, completed, reviewed
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     patient = db.relationship('Patient', backref=db.backref('lab_results', lazy=True))
-
     def __repr__(self):
         return f'<LabResult {self.test_name}>'
-
-
 class RiskAssessment(db.Model):
     """Risk assessment scores model"""
     __tablename__ = 'risk_assessments'
@@ -146,7 +122,6 @@ class RiskAssessment(db.Model):
         Index('idx_patient_id_assessment_date', 'patient_id', 'assessment_date'),
         CheckConstraint('risk_score >= 0 AND risk_score <= 100'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = db.Column(UUID(as_uuid=True), db.ForeignKey('patients.id'), nullable=False)
     assessment_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -158,14 +133,10 @@ class RiskAssessment(db.Model):
     assessment_type = db.Column(db.String(50))  # readmission, mortality, etc
     created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     patient = db.relationship('Patient', backref=db.backref('risk_assessments', lazy=True))
     clinician = db.relationship('User', backref=db.backref('assessments', lazy=True))
-
     def __repr__(self):
-        return f'<RiskAssessment {self.patient_id} - {self.risk_category}>'
-
-
+        return f'<RiskAssessment {str(self.id)[:8]}-{self.risk_category}>'
 class Alert(db.Model):
     """Clinical alerts model"""
     __tablename__ = 'alerts'
@@ -173,7 +144,6 @@ class Alert(db.Model):
         Index('idx_patient_id_created_at', 'patient_id', 'created_at'),
         Index('idx_status', 'status'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = db.Column(UUID(as_uuid=True), db.ForeignKey('patients.id'), nullable=False)
     alert_type = db.Column(db.String(50), nullable=False)  # critical, warning, info
@@ -185,21 +155,16 @@ class Alert(db.Model):
     acknowledged_at = db.Column(db.DateTime)
     resolved_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     patient = db.relationship('Patient', backref=db.backref('alerts', lazy=True))
     clinician = db.relationship('User', backref=db.backref('acknowledged_alerts', lazy=True))
-
     def __repr__(self):
-        return f'<Alert {self.alert_type}>'
-
-
+        return f'<Alert {str(self.id)[:8]}-{self.alert_type}>'
 class Intervention(db.Model):
     """Clinical interventions model"""
     __tablename__ = 'interventions'
     __table_args__ = (
         Index('idx_patient_id_intervention_date', 'patient_id', 'intervention_date'),
     )
-
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = db.Column(UUID(as_uuid=True), db.ForeignKey('patients.id'), nullable=False)
     intervention_type = db.Column(db.String(100), nullable=False)
@@ -209,9 +174,7 @@ class Intervention(db.Model):
     clinician_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     patient = db.relationship('Patient', backref=db.backref('interventions', lazy=True))
     clinician = db.relationship('User', backref=db.backref('interventions', lazy=True))
-
     def __repr__(self):
-        return f'<Intervention {self.intervention_type}>'
+        return f'<Intervention {str(self.id)[:8]}-{self.intervention_type}>'
