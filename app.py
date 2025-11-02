@@ -6,7 +6,6 @@ Author: Healthcare Systems Team
 Version: 1.0.0
 Description: Main entry point for the Healthcare Risk Platform API server
 """
-
 import os
 import logging
 from datetime import timedelta
@@ -14,15 +13,13 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
+from sqlalchemy import text
 from dotenv import load_dotenv
-
 # Load environment variables
 load_dotenv()
-
 # Initialize Flask app
 app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False
-
 # Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     'DATABASE_URL',
@@ -30,7 +27,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = os.getenv('DEBUG', 'False') == 'True'
-
 # JWT Configuration
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-here')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(
@@ -39,28 +35,23 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(
     seconds=int(os.getenv('JWT_REFRESH_EXPIRATION', 2592000))
 )
-
 # CORS Configuration
 app.config['CORS_ORIGINS'] = os.getenv('CORS_ORIGINS', '*').split(',')
-
 # Session Configuration
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'True') == 'True'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-
 # Initialize extensions
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 CORS(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}})
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
 # Import blueprints and models
 try:
     from routes import api_bp, auth_bp, patient_bp, risk_bp, report_bp
@@ -68,7 +59,6 @@ try:
     logger.info('Successfully imported all routes and models')
 except ImportError as e:
     logger.warning(f'Some modules not yet available: {e}')
-
 # Register blueprints
 if 'api_bp' in locals():
     app.register_blueprint(api_bp, url_prefix='/api')
@@ -76,8 +66,6 @@ if 'api_bp' in locals():
     app.register_blueprint(patient_bp, url_prefix='/api/patients')
     app.register_blueprint(risk_bp, url_prefix='/api/risk')
     app.register_blueprint(report_bp, url_prefix='/api/reports')
-
-
 # Global Error Handlers
 @app.errorhandler(400)
 def bad_request(error):
@@ -89,8 +77,6 @@ def bad_request(error):
         'status_code': 400
     }
     return jsonify(response), 400
-
-
 @app.errorhandler(401)
 def unauthorized(error):
     """Handle 401 Unauthorized errors"""
@@ -101,8 +87,6 @@ def unauthorized(error):
         'status_code': 401
     }
     return jsonify(response), 401
-
-
 @app.errorhandler(403)
 def forbidden(error):
     """Handle 403 Forbidden errors"""
@@ -113,8 +97,6 @@ def forbidden(error):
         'status_code': 403
     }
     return jsonify(response), 403
-
-
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 Not Found errors"""
@@ -125,8 +107,6 @@ def not_found(error):
         'status_code': 404
     }
     return jsonify(response), 404
-
-
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 Internal Server errors"""
@@ -138,14 +118,12 @@ def internal_error(error):
         'status_code': 500
     }
     return jsonify(response), 500
-
-
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint for monitoring and load balancers"""
     try:
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return jsonify({
             'status': 'healthy',
             'service': 'Healthcare Risk Platform API',
@@ -159,8 +137,6 @@ def health_check():
             'error': str(e),
             'database': 'disconnected'
         }), 500
-
-
 # API Information endpoint
 @app.route('/api', methods=['GET'])
 def api_info():
@@ -177,14 +153,10 @@ def api_info():
             'reports': '/api/reports'
         }
     }), 200
-
-
 @app.before_request
 def log_request():
     """Log incoming requests"""
     logger.debug(f'{request.method} {request.path} - {request.remote_addr}')
-
-
 @app.after_request
 def set_response_headers(response):
     """Set security headers on all responses"""
@@ -194,8 +166,6 @@ def set_response_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     response.headers['Content-Security-Policy'] = "default-src 'self'"
     return response
-
-
 if __name__ == '__main__':
     # Get configuration from environment
     host = os.getenv('API_HOST', '0.0.0.0')
