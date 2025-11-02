@@ -12,7 +12,9 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
+
 db = SQLAlchemy()
+
 class User(db.Model):
     """User model for authentication and authorization"""
     __tablename__ = 'users'
@@ -32,12 +34,17 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = db.Column(db.DateTime)
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<User(id={self.id}, username={self.username})>'
+
+
 class Patient(db.Model):
     """Patient model containing demographic and clinical information"""
     __tablename__ = 'patients'
@@ -68,8 +75,11 @@ class Patient(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     def __repr__(self):
-        return f'<Patient {str(self.id)[:8]}>'
+        return f'<Patient(id={self.id}, mrn={self.mrn}, first_name={self.first_name})>'
+
+
 class Vital(db.Model):
     """Vital signs model for storing patient measurements"""
     __tablename__ = 'vital_signs'
@@ -92,8 +102,11 @@ class Vital(db.Model):
     weight = db.Column(db.Float)  # kg
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     patient = db.relationship('Patient', backref=db.backref('vitals', lazy=True))
+
     def __repr__(self):
-        return f'<Vital {str(self.id)[:8]}>'
+        return f'<Vital(id={self.id}, patient_id={self.patient_id}, heart_rate={self.heart_rate})>'
+
+
 class LabResult(db.Model):
     """Laboratory test results model"""
     __tablename__ = 'lab_results'
@@ -113,8 +126,11 @@ class LabResult(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     patient = db.relationship('Patient', backref=db.backref('lab_results', lazy=True))
+
     def __repr__(self):
-        return f'<LabResult {self.test_name}>'
+        return f'<LabResult(id={self.id}, patient_id={self.patient_id}, test_name={self.test_name})>'
+
+
 class RiskAssessment(db.Model):
     """Risk assessment scores model"""
     __tablename__ = 'risk_assessments'
@@ -135,8 +151,11 @@ class RiskAssessment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     patient = db.relationship('Patient', backref=db.backref('risk_assessments', lazy=True))
     clinician = db.relationship('User', backref=db.backref('assessments', lazy=True))
+
     def __repr__(self):
-        return f'<RiskAssessment {str(self.id)[:8]}-{self.risk_category}>'
+        return f'<RiskAssessment(id={self.id}, patient_id={self.patient_id}, risk_score={self.risk_score}, risk_category={self.risk_category})>'
+
+
 class Alert(db.Model):
     """Clinical alerts model"""
     __tablename__ = 'alerts'
@@ -157,8 +176,11 @@ class Alert(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     patient = db.relationship('Patient', backref=db.backref('alerts', lazy=True))
     clinician = db.relationship('User', backref=db.backref('acknowledged_alerts', lazy=True))
+
     def __repr__(self):
-        return f'<Alert {str(self.id)[:8]}-{self.alert_type}>'
+        return f'<Alert(id={self.id}, patient_id={self.patient_id}, severity={self.severity}, status={self.status})>'
+
+
 class Intervention(db.Model):
     """Clinical interventions model"""
     __tablename__ = 'interventions'
@@ -176,5 +198,6 @@ class Intervention(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     patient = db.relationship('Patient', backref=db.backref('interventions', lazy=True))
     clinician = db.relationship('User', backref=db.backref('interventions', lazy=True))
+
     def __repr__(self):
-        return f'<Intervention {str(self.id)[:8]}-{self.intervention_type}>'
+        return f'<Intervention(id={self.id}, patient_id={self.patient_id}, intervention_type={self.intervention_type}, outcome={self.outcome})>'
